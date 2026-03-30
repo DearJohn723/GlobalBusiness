@@ -1,0 +1,111 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: leads
+// Document ID: auto-generated
+// Fields:
+//   - name: string (required)
+//   - website: string (required)
+//   - country: string
+//   - platform: string
+//   - contactInfo: string
+//   - status: string (enum: new, contacted, responded, rejected)
+//   - createdAt: timestamp (required)
+//   - authorUid: string (required)
+//
+// Collection: templates
+// Document ID: auto-generated
+// Fields:
+//   - title: string (required)
+//   - originalContent: string (required)
+//   - translatedContent: string
+//   - language: string
+//   - createdAt: timestamp (required)
+//   - authorUid: string (required)
+//
+// Collection: keywords
+// Document ID: auto-generated
+// Fields:
+//   - name: string (required)
+//   - keywords: list (required)
+//   - createdAt: timestamp (required)
+//   - authorUid: string (required)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.authorUid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "john@greatidea.tw" && request.auth.token.email_verified == true));
+    }
+
+    function isValidLead(data) {
+      return data.keys().hasAll(['name', 'website', 'authorUid', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.website is string && data.website.size() > 0 && data.website.size() < 500 &&
+             data.authorUid == request.auth.uid &&
+             (data.status in ['new', 'contacted', 'responded', 'rejected']);
+    }
+
+    function isValidKeywordSet(data) {
+      return data.keys().hasAll(['name', 'keywords', 'authorUid', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.keywords is list && data.keywords.size() > 0 && data.keywords.size() < 50 &&
+             data.authorUid == request.auth.uid;
+    }
+
+    function isValidTemplate(data) {
+      return data.keys().hasAll(['title', 'originalContent', 'authorUid', 'createdAt']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.originalContent is string && data.originalContent.size() > 0 && data.originalContent.size() < 5000 &&
+             data.authorUid == request.auth.uid;
+    }
+
+    match /leads/{leadId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidLead(request.resource.data);
+      allow update: if isDocOwner() && isValidLead(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /templates/{templateId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidTemplate(request.resource.data);
+      allow update: if isDocOwner() && isValidTemplate(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+    
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    match /keywords/{setId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidKeywordSet(request.resource.data);
+      allow update: if isDocOwner() && isValidKeywordSet(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+    
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+  }
+}

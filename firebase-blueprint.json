@@ -1,0 +1,87 @@
+{
+  "entities": {
+    "Lead": {
+      "title": "Lead",
+      "description": "A business lead found through search.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "website": { "type": "string" },
+        "description": { "type": "string" },
+        "country": { "type": "string" },
+        "platform": { "type": "string" },
+        "contactInfo": { "type": "string" },
+        "status": { "type": "string", "enum": ["new", "contacted", "responded", "rejected"] },
+        "translations": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "authorUid": { "type": "string" }
+      },
+      "required": ["name", "website", "authorUid"]
+    },
+    "KeywordSet": {
+      "title": "Keyword Set",
+      "description": "A collection of keywords for searching.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "keywords": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "authorUid": { "type": "string" }
+      },
+      "required": ["name", "keywords", "authorUid"]
+    },
+    "Template": {
+      "title": "Outreach Template",
+      "description": "A template for outreach messages.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "originalContent": { "type": "string" },
+        "translatedContent": { "type": "string" },
+        "language": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "authorUid": { "type": "string" }
+      },
+      "required": ["title", "originalContent", "authorUid"]
+    },
+    "Setting": {
+      "title": "App Setting",
+      "description": "Global application settings like available platforms.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "platforms": { 
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "url": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Collection of business leads."
+    },
+    "/templates/{templateId}": {
+      "schema": "Template",
+      "description": "Collection of outreach templates."
+    },
+    "/settings/{settingId}": {
+      "schema": "Setting",
+      "description": "Global app settings."
+    },
+    "/keywords/{setId}": {
+      "schema": "KeywordSet",
+      "description": "User-defined keyword sets."
+    }
+  }
+}

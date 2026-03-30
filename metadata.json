@@ -1,0 +1,7 @@
+{
+  "name": "全球業務精準開發站",
+  "description": "An AI-powered lead generation and outreach system. Search for global business leads, extract contact info, and generate multi-language inquiry templates using Gemini.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
