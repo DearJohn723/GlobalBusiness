@@ -6,7 +6,7 @@ import {defineConfig, loadEnv} from 'vite';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: '/GlobalBusiness/', // 修正為您的 GitHub 專案名稱
+    base: './', // 使用相對路徑，可同時支援 GitHub Pages 與 Vercel
     plugins: [react(), tailwindcss()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
