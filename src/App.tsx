@@ -645,12 +645,19 @@ export default function App() {
         }
       });
 
-      const text = response.text || "[]";
+      const text = response.text;
+      if (!text || text === "[]") {
+        console.warn("AI returned empty results or no text", response);
+        setSearchError(t.noResults + " (AI returned no data)");
+        return;
+      }
+
       let results = [];
       try {
         results = JSON.parse(text);
       } catch (e) {
         console.error("Failed to parse AI response as JSON", text);
+        alert("AI Response Format Error: " + text);
         throw new Error("Invalid response format from AI");
       }
       
@@ -661,9 +668,9 @@ export default function App() {
 
       const savePromises = results.map(async (res: any) => {
         const leadData = {
-          name: res.name,
-          website: res.website,
-          description: res.description,
+          name: res.name || "Unknown Company",
+          website: res.website || "",
+          description: res.description || "",
           country: selectedCountries.length > 0 ? (selectedCountries.includes('Global') ? 'Global' : selectedCountries[0]) : 'Global',
           platform: selectedPlatforms.join(', ') || 'Web',
           status: 'new',
@@ -674,7 +681,7 @@ export default function App() {
         try {
           const leadRef = await addDoc(collection(db, 'leads'), leadData);
           if (currentLang !== 'en') {
-            translateLead(leadRef.id, res.name, res.description, currentLang);
+            translateLead(leadRef.id, leadData.name, leadData.description, currentLang);
           }
           return leadRef;
         } catch (err) {
@@ -687,7 +694,9 @@ export default function App() {
       setSearchQuery('');
     } catch (error) {
       console.error("Search failed", error);
-      setSearchError(t.searchError);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      setSearchError(t.searchError + " (" + errorMsg + ")");
+      alert("Search Error: " + errorMsg);
     } finally {
       setIsSearching(false);
     }
