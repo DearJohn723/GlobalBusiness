@@ -19,6 +19,7 @@ import {
   Languages,
   AlertCircle,
   ShieldCheck,
+  Save,
   X
 } from 'lucide-react';
 import { GoogleGenAI, Type, Modality } from "@google/genai";
@@ -56,6 +57,8 @@ interface Platform {
 
 interface AppSettings {
   platforms: Platform[];
+  companyName?: string;
+  contactEmail?: string;
 }
 
 interface Lead {
@@ -142,7 +145,33 @@ const UI_STRINGS: Record<Language, any> = {
     messagePreview: 'Message Preview',
     aiPersonalizing: 'AI is personalizing your message...',
     outreachGuide: 'Select a lead and a template, then click "Generate Message" to create your personalized outreach.',
+    noResults: 'No leads found. Try different keywords or fewer filters.',
+    searchError: 'An error occurred during search. Please try again.',
+    searchingDesc: 'Searching global data with AI, this may take a moment...',
+    businessProfile: 'Business Profile',
+    companyName: 'Company Name',
+    contactEmail: 'Contact Email',
+    requirements: 'Additional Requirements',
+    requirementsPlaceholder: 'e.g. Mention our 20% discount for new partners',
+    saveAsTemplate: 'Save as Template',
+    templateSaved: 'Template saved successfully!',
     addNewPlatform: 'Add New Platform',
+    contentDirection: 'Content Direction',
+    generateWithAI: 'Generate with AI',
+    aiGenerating: 'AI is generating template...',
+    regenerate: 'Regenerate',
+    directionPlaceholder: 'e.g. Introduce our new product and ask for partnership',
+    contactName: 'Contact Name',
+    jobTitle: 'Job Title',
+    phone: 'Phone Number',
+    companyFeatures: 'Company Features',
+    featuredProducts: 'Featured Products',
+    featuresPlaceholder: 'e.g. 20 years of industry experience, focusing on high-quality manufacturing',
+    productsPlaceholder: 'e.g. Industrial 3D printers, precision sensors',
+    targetLanguage: 'Target Language',
+    feedback: 'Feedback / Adjustments',
+    feedbackPlaceholder: 'e.g. Make it more formal, or emphasize our fast delivery',
+    applyFeedback: 'Apply & Regenerate',
   },
   'zh-TW': {
     leads: '業務線索',
@@ -198,7 +227,33 @@ const UI_STRINGS: Record<Language, any> = {
     messagePreview: '訊息預覽',
     aiPersonalizing: 'AI 正在為您生成個性化訊息...',
     outreachGuide: '選擇線索和模板，然後點擊「生成訊息」來建立您的個性化開發信。',
+    noResults: '找不到相關線索，請嘗試更換關鍵字或減少篩選條件。',
+    searchError: '搜尋過程中發生錯誤，請稍後再試。',
+    searchingDesc: '正在透過 AI 搜尋全球數據，這可能需要一點時間...',
+    businessProfile: '商務資料',
+    companyName: '公司名稱',
+    contactEmail: '聯絡信箱',
+    requirements: '額外需求',
+    requirementsPlaceholder: '例如：提到我們對新合作夥伴的 20% 折扣',
+    saveAsTemplate: '儲存為模板',
+    templateSaved: '模板已成功儲存！',
     addNewPlatform: '新增平台',
+    contentDirection: '內容方向',
+    generateWithAI: '使用 AI 生成',
+    aiGenerating: 'AI 正在生成模板...',
+    regenerate: '重新生成',
+    directionPlaceholder: '例如：介紹我們的新產品，並詢問合作意向',
+    contactName: '聯絡人姓名',
+    jobTitle: '職稱',
+    phone: '電話',
+    companyFeatures: '公司特色',
+    featuredProducts: '特色產品',
+    featuresPlaceholder: '例如：我們擁有 20 年的產業經驗，專注於高品質製造',
+    productsPlaceholder: '例如：工業級 3D 列印機、精密感測器',
+    targetLanguage: '目標語系',
+    feedback: '調整意見',
+    feedbackPlaceholder: '例如：語氣再正式一點，或強調我們的快速交貨',
+    applyFeedback: '套用並重新生成',
   },
   'zh-CN': {
     leads: '业务线索',
@@ -232,10 +287,10 @@ const UI_STRINGS: Record<Language, any> = {
     signOut: '登出',
     discoverLeads: '探索全球潜在业务合作伙伴。',
     keywordPlaceholder: '例如：永续时尚品牌',
-    addCountry: '新增国家...',
+    addCountry: '国家/地区',
     searching: '正在搜寻全球数据...',
     templateTitle: '模板标题',
-    templateTitlePlaceholder: '例如：初步合作洽談',
+    templateTitlePlaceholder: '例如：初步合作洽谈',
     templateContent: '内容 (中文或英文)',
     templateContentPlaceholder: '在此输入您的询问内容...',
     saveTemplate: '储存模板',
@@ -254,7 +309,33 @@ const UI_STRINGS: Record<Language, any> = {
     messagePreview: '讯息预览',
     aiPersonalizing: 'AI 正在为您生成个性化讯息...',
     outreachGuide: '选择线索和模板，然后点击「生成讯息」来建立您的个性化开发信。',
+    noResults: '找不到相关线索，请尝试更换关键字或减少筛选条件。',
+    searchError: '搜寻过程中发生错误，请稍后再试。',
+    searchingDesc: '正在通过 AI 搜寻全球数据，這可能需要一点时间...',
+    businessProfile: '商务资料',
+    companyName: '公司名称',
+    contactEmail: '联系邮箱',
+    requirements: '额外需求',
+    requirementsPlaceholder: '例如：提到我们对新合作伙伴的 20% 折扣',
+    saveAsTemplate: '储存为模板',
+    templateSaved: '模板已成功储存！',
     addNewPlatform: '新增平台',
+    contentDirection: '内容方向',
+    generateWithAI: '使用 AI 生成',
+    aiGenerating: 'AI 正在生成模板...',
+    regenerate: '重新生成',
+    directionPlaceholder: '例如：介绍我们的新产品，并询问合作意向',
+    contactName: '联系人姓名',
+    jobTitle: '职称',
+    phone: '电话',
+    companyFeatures: '公司特色',
+    featuredProducts: '特色产品',
+    featuresPlaceholder: '例如：我们拥有 20 年的行业经验，专注于高质量制造',
+    productsPlaceholder: '例如：工业级 3D 打印机、精密传感器',
+    targetLanguage: '目标语系',
+    feedback: '调整意见',
+    feedbackPlaceholder: '例如：语气再正式一点，或强调我们的快速交货',
+    applyFeedback: '套用并重新生成',
   }
 };
 
@@ -285,6 +366,12 @@ interface FirestoreErrorInfo {
 }
 
 // --- Helpers ---
+const extractEmail = (text: string) => {
+  const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
+  const match = text.match(emailRegex);
+  return match ? match[0] : '';
+};
+
 const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
@@ -323,6 +410,15 @@ export default function App() {
   
   // Settings State
   const [appSettings, setAppSettings] = useState<AppSettings>({ platforms: [] });
+  const [userProfile, setUserProfile] = useState<{ 
+    companyName?: string; 
+    contactEmail?: string;
+    contactName?: string;
+    jobTitle?: string;
+    phone?: string;
+    companyFeatures?: string;
+    featuredProducts?: string;
+  }>({});
   const [isSettingsLoading, setIsSettingsLoading] = useState(true);
   
   // Leads State
@@ -331,6 +427,7 @@ export default function App() {
   const [selectedCountries, setSelectedCountries] = useState<string[]>(['Global']);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [showOriginal, setShowOriginal] = useState<Record<string, boolean>>({});
 
   // Keywords State
@@ -343,13 +440,20 @@ export default function App() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [newTemplateTitle, setNewTemplateTitle] = useState('');
   const [newTemplateContent, setNewTemplateContent] = useState('');
+  const [templateDirection, setTemplateDirection] = useState('');
+  const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [targetLang, setTargetLang] = useState('English');
 
   // Outreach State
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [outreachKeywords, setOutreachKeywords] = useState('');
+  const [outreachRequirements, setOutreachRequirements] = useState('');
+  const [outreachLang, setOutreachLang] = useState('English');
+  const [outreachFeedback, setOutreachFeedback] = useState('');
   const [generatedMessage, setGeneratedMessage] = useState('');
+  const [generatedSubject, setGeneratedSubject] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
   // --- Auth ---
@@ -367,25 +471,29 @@ export default function App() {
 
   // --- Settings Sync ---
   useEffect(() => {
-    const unsubscribe = onSnapshot(doc(db, 'settings', 'global'), (snapshot) => {
+    const unsubscribeGlobal = onSnapshot(doc(db, 'settings', 'global'), (snapshot) => {
       if (snapshot.exists()) {
         setAppSettings(snapshot.data() as AppSettings);
       } else {
-        // Initial default settings
-        const defaultSettings = {
-          platforms: [
-            { name: 'LinkedIn', url: 'https://linkedin.com' },
-            { name: 'Instagram', url: 'https://instagram.com' },
-            { name: 'Twitter', url: 'https://twitter.com' },
-            { name: 'Official Websites', url: '' }
-          ]
-        };
-        setAppSettings(defaultSettings);
+        setAppSettings({ platforms: [] });
       }
       setIsSettingsLoading(false);
     });
-    return () => unsubscribe();
-  }, []);
+
+    let unsubscribeProfile = () => {};
+    if (user) {
+      unsubscribeProfile = onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
+        if (snapshot.exists()) {
+          setUserProfile(snapshot.data());
+        }
+      });
+    }
+
+    return () => {
+      unsubscribeGlobal();
+      unsubscribeProfile();
+    };
+  }, [user]);
 
   const handleLogin = async () => {
     try {
@@ -487,17 +595,31 @@ export default function App() {
   const searchLeads = async () => {
     if (!searchQuery || !user) return;
     setIsSearching(true);
+    setSearchError(null);
     try {
-      const countriesStr = selectedCountries.join(', ');
-      const platformsStr = selectedPlatforms.length > 0 ? selectedPlatforms.join(', ') : 'All available platforms';
+      const countriesStr = selectedCountries.length > 0 
+        ? (selectedCountries.includes('Global') ? 'Worldwide (focus on major markets)' : selectedCountries.join(', '))
+        : 'Global (any region)';
+      const platformsStr = selectedPlatforms.length > 0 
+        ? selectedPlatforms.join(', ') 
+        : 'All available professional platforms, official business websites, and industry directories';
       
-      const prompt = `Search for business leads related to "${searchQuery}" in the following countries: ${countriesStr}. 
-      Target platforms: ${platformsStr}. 
-      Return a list of 5 potential leads with their name, website URL, and a brief 1-sentence description. 
-      Format as JSON array: [{ "name": "...", "website": "...", "description": "..." }]`;
+      const prompt = `You are a professional business development researcher. 
+      Task: Find 5 high-quality business leads related to "${searchQuery}".
+      Target Regions: ${countriesStr}. 
+      Target Platforms: ${platformsStr}. 
+      
+      Requirements:
+      1. Use Google Search to find REAL, active companies and their official websites.
+      2. For each lead, provide: Name, Official Website URL, and a concise 1-sentence business description.
+      3. Ensure the websites are reachable and relevant to the keywords.
+      4. If specific leads are hard to find, look for industry leaders, major distributors, or relevant business listings in the target regions.
+      
+      CRITICAL: Return ONLY a valid JSON array. Do not include any markdown formatting blocks (like \`\`\`json), citations, or extra text.
+      Format: [{ "name": "...", "website": "...", "description": "..." }]`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3-flash-preview", 
         contents: prompt,
         config: {
           tools: [{ googleSearch: {} }],
@@ -517,28 +639,49 @@ export default function App() {
         }
       });
 
-      const results = JSON.parse(response.text || "[]");
+      const text = response.text || "[]";
+      let results = [];
+      try {
+        results = JSON.parse(text);
+      } catch (e) {
+        console.error("Failed to parse AI response as JSON", text);
+        throw new Error("Invalid response format from AI");
+      }
       
-      for (const res of results) {
-        const leadRef = await addDoc(collection(db, 'leads'), {
+      if (results.length === 0) {
+        setSearchError(t.noResults);
+        return;
+      }
+
+      const savePromises = results.map(async (res: any) => {
+        const leadData = {
           name: res.name,
           website: res.website,
           description: res.description,
-          country: selectedCountries[0], // Store primary country
-          platform: selectedPlatforms.join(', '),
+          country: selectedCountries.length > 0 ? (selectedCountries.includes('Global') ? 'Global' : selectedCountries[0]) : 'Global',
+          platform: selectedPlatforms.join(', ') || 'Web',
           status: 'new',
           createdAt: serverTimestamp(),
           authorUid: user.uid
-        });
-
-        // Auto translate if current lang is Chinese
-        if (currentLang !== 'en') {
-          translateLead(leadRef.id, res.name, res.description, currentLang);
+        };
+        
+        try {
+          const leadRef = await addDoc(collection(db, 'leads'), leadData);
+          if (currentLang !== 'en') {
+            translateLead(leadRef.id, res.name, res.description, currentLang);
+          }
+          return leadRef;
+        } catch (err) {
+          console.error("Failed to save lead", err);
+          return null;
         }
-      }
+      });
+
+      await Promise.all(savePromises);
       setSearchQuery('');
     } catch (error) {
       console.error("Search failed", error);
+      setSearchError(t.searchError);
     } finally {
       setIsSearching(false);
     }
@@ -549,7 +692,7 @@ export default function App() {
     if (!user) return;
     try {
       const prompt = `Find the best contact information (email, phone number, or official contact form URL) for the company "${lead.name}" whose website is ${lead.website}. 
-      Provide a concise summary of how to reach them.`;
+      Use Google Search to find real contact details. Provide a concise summary.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -568,6 +711,44 @@ export default function App() {
   };
 
   // --- Template Management ---
+  const generateTemplateWithAI = async () => {
+    if (!templateDirection || !user) return;
+    setIsGeneratingTemplate(true);
+    try {
+      const langName = currentLang === 'en' ? 'English' : currentLang === 'zh-TW' ? 'Traditional Chinese' : 'Simplified Chinese';
+      const prompt = `Generate a professional business outreach email template based on the following direction.
+      
+      Direction: ${templateDirection}
+      
+      Sender Information:
+      - Company Name: ${userProfile.companyName || '[Company Name]'}
+      - Contact Person: ${userProfile.contactName || '[Contact Name]'} (${userProfile.jobTitle || '[Job Title]'})
+      - Contact Email: ${userProfile.contactEmail || '[Contact Email]'}
+      - Phone: ${userProfile.phone || '[Phone Number]'}
+      
+      Company Context:
+      - Features: ${userProfile.companyFeatures || 'N/A'}
+      - Featured Products: ${userProfile.featuredProducts || 'N/A'}
+      
+      Requirements:
+      1. Professional, persuasive, and clear.
+      2. Use placeholders like [Recipient Name] or [Lead Company] where appropriate.
+      3. The response should be in ${langName}.
+      4. Provide ONLY the email body content. No AI chatter.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt
+      });
+
+      setNewTemplateContent(response.text || "");
+    } catch (error) {
+      console.error("Template generation failed", error);
+    } finally {
+      setIsGeneratingTemplate(false);
+    }
+  };
+
   const saveTemplate = async () => {
     if (!newTemplateTitle || !newTemplateContent || !user) return;
     try {
@@ -609,24 +790,71 @@ export default function App() {
   };
 
   // --- Outreach Generation ---
-  const generateOutreach = async () => {
-    if (!selectedLead || !selectedTemplate || !user) return;
+  const generateOutreach = async (feedback?: string) => {
+    if (!selectedLead || !user) return;
+    if (!selectedTemplate && !outreachKeywords && !outreachRequirements && !feedback) return;
+    
     setIsGenerating(true);
     try {
-      const content = selectedTemplate.translatedContent || selectedTemplate.originalContent;
-      const prompt = `Personalize this business outreach message for the following lead.
-      Lead Name: ${selectedLead.name}
-      Lead Website: ${selectedLead.website}
-      Template: ${content}
+      const templateContent = selectedTemplate ? (selectedTemplate.translatedContent || selectedTemplate.originalContent) : '';
+      const prompt = `Generate a professional business outreach email for the following lead.
       
-      Make it feel authentic and specific to their business.`;
+      Sender Information:
+      - Company Name: ${userProfile.companyName || 'Our Company'}
+      - Contact Person: ${userProfile.contactName || 'N/A'} (${userProfile.jobTitle || 'N/A'})
+      - Contact Email: ${userProfile.contactEmail || 'N/A'}
+      - Phone: ${userProfile.phone || 'N/A'}
+      
+      Company Context:
+      - Features: ${userProfile.companyFeatures || 'N/A'}
+      - Featured Products: ${userProfile.featuredProducts || 'N/A'}
+      
+      Lead Information:
+      - Lead Name: ${selectedLead.name}
+      - Lead Website: ${selectedLead.website}
+      - Lead Description: ${selectedLead.description || 'N/A'}
+      
+      ${templateContent ? `Outreach Template to follow:
+      ${templateContent}` : 'No specific template provided. Please draft a professional outreach message from scratch.'}
+      
+      Key Points/Keywords to include:
+      ${outreachKeywords || 'None'}
+      
+      Additional Requirements:
+      ${outreachRequirements || 'None'}
+
+      ${feedback ? `USER FEEDBACK ON PREVIOUS VERSION:
+      "${feedback}"
+      Please adjust the message accordingly.` : ''}
+      
+      CRITICAL REQUIREMENTS:
+      1. Return a JSON object with "subject" and "body" fields.
+      2. The "subject" should be a compelling email subject line.
+      3. The "body" should be the final email content.
+      4. DO NOT include any introductory or concluding remarks from the AI.
+      5. The message should be in ${outreachLang}.
+      6. Make it feel authentic, professional, and specific to their business.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: prompt
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              subject: { type: Type.STRING },
+              body: { type: Type.STRING }
+            },
+            required: ["subject", "body"]
+          }
+        }
       });
 
-      setGeneratedMessage(response.text || "");
+      const result = JSON.parse(response.text || "{}");
+      setGeneratedSubject(result.subject || "");
+      setGeneratedMessage(result.body || "");
+      if (feedback) setOutreachFeedback('');
     } catch (error) {
       console.error("Generation failed", error);
     } finally {
@@ -639,6 +867,22 @@ export default function App() {
       await deleteDoc(doc(db, col, id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, col);
+    }
+  };
+
+  const saveGeneratedAsTemplate = async () => {
+    if (!generatedMessage || !user) return;
+    try {
+      const fullContent = generatedSubject ? `Subject: ${generatedSubject}\n\n${generatedMessage}` : generatedMessage;
+      await addDoc(collection(db, 'templates'), {
+        title: `Generated Template - ${new Date().toLocaleDateString()}`,
+        originalContent: fullContent,
+        createdAt: serverTimestamp(),
+        authorUid: user.uid
+      });
+      alert(t.templateSaved);
+    } catch (error) {
+      console.error("Failed to save template", error);
     }
   };
 
@@ -850,13 +1094,32 @@ export default function App() {
                   {isSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                   {isSearching ? t.searching : t.findLeads}
                 </button>
+
+                {isSearching && (
+                  <p className="text-center text-xs text-[#5A5A40] mt-4 animate-pulse">
+                    {t.searchingDesc}
+                  </p>
+                )}
+
+                {searchError && (
+                  <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-sm">
+                    <AlertCircle className="w-5 h-5" />
+                    {searchError}
+                  </div>
+                )}
               </div>
 
               {/* Leads List */}
               <div className="space-y-6">
                 <h3 className="text-xl font-serif font-medium mb-6">{t.recentLeads} ({leads.length})</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {leads.map((lead) => {
+                {leads.length === 0 && !isSearching ? (
+                  <div className="bg-white rounded-[32px] p-12 border border-[#e5e5e0] text-center">
+                    <Search className="w-12 h-12 text-[#5A5A40]/20 mx-auto mb-4" />
+                    <p className="text-[#5A5A40]/50 italic font-serif">{t.noResults}</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {leads.map((lead) => {
                     const translation = lead.translations?.[currentLang];
                     const isShowingOriginal = showOriginal[lead.id];
                     const displayName = (translation && !isShowingOriginal) ? translation.name : lead.name;
@@ -948,9 +1211,9 @@ export default function App() {
                           </button>
                         </div>
                       </motion.div>
-                    );
-                  })}
-                </div>
+                    )})}
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -973,32 +1236,77 @@ export default function App() {
               {/* New Template Form */}
               <div className="bg-white rounded-[32px] p-8 shadow-sm border border-[#e5e5e0] mb-12">
                 <div className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.templateTitle}</label>
-                    <input 
-                      type="text" 
-                      placeholder={t.templateTitlePlaceholder}
-                      value={newTemplateTitle}
-                      onChange={(e) => setNewTemplateTitle(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40]"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.templateTitle}</label>
+                      <input 
+                        type="text" 
+                        placeholder={t.templateTitlePlaceholder}
+                        value={newTemplateTitle}
+                        onChange={(e) => setNewTemplateTitle(e.target.value)}
+                        className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40]"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.contentDirection}</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          placeholder={t.directionPlaceholder}
+                          value={templateDirection}
+                          onChange={(e) => setTemplateDirection(e.target.value)}
+                          className="flex-1 px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40]"
+                        />
+                        <button 
+                          onClick={generateTemplateWithAI}
+                          disabled={isGeneratingTemplate || !templateDirection}
+                          className="px-6 bg-[#1a1a1a] text-white rounded-2xl hover:bg-black transition-all disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {isGeneratingTemplate ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                          <span className="hidden md:inline">{t.generateWithAI}</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
+
                   <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.templateContent}</label>
-                    <textarea 
-                      rows={6}
-                      placeholder={t.templateContentPlaceholder}
-                      value={newTemplateContent}
-                      onChange={(e) => setNewTemplateContent(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40] resize-none"
-                    />
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.templateContent}</label>
+                      {newTemplateContent && (
+                        <button 
+                          onClick={generateTemplateWithAI}
+                          className="text-[10px] text-[#5A5A40] hover:underline flex items-center gap-1"
+                        >
+                          <Languages className="w-3 h-3" />
+                          {t.regenerate}
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <textarea 
+                        rows={8}
+                        placeholder={t.templateContentPlaceholder}
+                        value={newTemplateContent}
+                        onChange={(e) => setNewTemplateContent(e.target.value)}
+                        className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40] resize-none"
+                      />
+                      {isGeneratingTemplate && (
+                        <div className="absolute inset-0 bg-[#f5f5f0]/50 rounded-2xl flex items-center justify-center">
+                          <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="w-6 h-6 animate-spin text-[#5A5A40]" />
+                            <p className="text-xs font-serif italic text-[#5A5A40]">{t.aiGenerating}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
+                  
                   <button 
                     onClick={saveTemplate}
                     disabled={!newTemplateTitle || !newTemplateContent}
                     className="w-full bg-[#5A5A40] text-white rounded-full py-4 font-medium hover:bg-[#4a4a35] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Save className="w-5 h-5" />
                     {t.saveTemplate}
                   </button>
                 </div>
@@ -1124,9 +1432,48 @@ export default function App() {
                         </select>
                       </div>
 
+                      <div className="space-y-2">
+                        <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.keyword}</label>
+                        <input 
+                          type="text" 
+                          value={outreachKeywords}
+                          onChange={(e) => setOutreachKeywords(e.target.value)}
+                          placeholder={t.keywordPlaceholder}
+                          className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40]"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.targetLanguage}</label>
+                        <select 
+                          value={outreachLang}
+                          onChange={(e) => setOutreachLang(e.target.value)}
+                          className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40]"
+                        >
+                          <option>English</option>
+                          <option>Traditional Chinese</option>
+                          <option>Simplified Chinese</option>
+                          <option>Japanese</option>
+                          <option>German</option>
+                          <option>French</option>
+                          <option>Spanish</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.requirements}</label>
+                        <textarea 
+                          value={outreachRequirements}
+                          onChange={(e) => setOutreachRequirements(e.target.value)}
+                          placeholder={t.requirementsPlaceholder}
+                          className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40] resize-none"
+                          rows={3}
+                        />
+                      </div>
+
                       <button 
-                        onClick={generateOutreach}
-                        disabled={!selectedLead || !selectedTemplate || isGenerating}
+                        onClick={() => generateOutreach()}
+                        disabled={!selectedLead || (!selectedTemplate && !outreachKeywords && !outreachRequirements) || isGenerating}
                         className="w-full bg-[#5A5A40] text-white rounded-full py-4 font-medium hover:bg-[#4a4a35] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
@@ -1158,7 +1505,8 @@ export default function App() {
                         <div className="flex items-center gap-2">
                           <button 
                             onClick={() => {
-                              navigator.clipboard.writeText(generatedMessage);
+                              const fullText = generatedSubject ? `Subject: ${generatedSubject}\n\n${generatedMessage}` : generatedMessage;
+                              navigator.clipboard.writeText(fullText);
                               alert("Copied to clipboard!");
                             }}
                             className="p-3 bg-[#f5f5f0] text-[#5A5A40] rounded-full hover:bg-[#e5e5e0] transition-all"
@@ -1166,25 +1514,64 @@ export default function App() {
                             <Copy className="w-5 h-5" />
                           </button>
                           <a 
-                            href={`mailto:?body=${encodeURIComponent(generatedMessage)}`}
+                            href={`mailto:${selectedLead?.contactInfo ? extractEmail(selectedLead.contactInfo) : ''}?subject=${encodeURIComponent(generatedSubject)}&body=${encodeURIComponent(generatedMessage)}`}
                             className="p-3 bg-[#5A5A40] text-white rounded-full hover:bg-[#4a4a35] transition-all"
                           >
                             <Send className="w-5 h-5" />
                           </a>
+                          <button 
+                            onClick={saveGeneratedAsTemplate}
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#e5e5e0] text-[#5A5A40] rounded-full hover:bg-[#f5f5f0] transition-all text-sm font-medium"
+                          >
+                            <FileText className="w-4 h-4" />
+                            {t.saveAsTemplate}
+                          </button>
                         </div>
                       )}
                     </div>
 
-                    <div className="flex-1 bg-[#f5f5f0] rounded-[24px] p-8 relative">
+                    <div className="flex-1 bg-[#f5f5f0] rounded-[24px] p-8 relative flex flex-col">
                       {isGenerating ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
                           <Loader2 className="w-10 h-10 animate-spin text-[#5A5A40]" />
                           <p className="text-sm font-serif italic text-[#5A5A40]">{t.aiPersonalizing}</p>
                         </div>
                       ) : generatedMessage ? (
-                        <div className="prose prose-sm max-w-none prose-stone">
-                          <ReactMarkdown>{generatedMessage}</ReactMarkdown>
-                        </div>
+                        <>
+                          {generatedSubject && (
+                            <div className="mb-4 pb-4 border-b border-[#e5e5e0]">
+                              <span className="text-[10px] uppercase tracking-widest font-bold text-[#5A5A40] block mb-1">Subject:</span>
+                              <p className="font-medium text-[#1a1a1a]">{generatedSubject}</p>
+                            </div>
+                          )}
+                          <div className="flex-1 prose prose-sm max-w-none prose-stone overflow-y-auto mb-6">
+                            <ReactMarkdown>{generatedMessage}</ReactMarkdown>
+                          </div>
+                          
+                          {/* Feedback Input */}
+                          <div className="mt-auto pt-6 border-t border-[#e5e5e0]">
+                            <div className="space-y-3">
+                              <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.feedback}</label>
+                              <div className="flex gap-2">
+                                <input 
+                                  type="text" 
+                                  value={outreachFeedback}
+                                  onChange={(e) => setOutreachFeedback(e.target.value)}
+                                  placeholder={t.feedbackPlaceholder}
+                                  className="flex-1 px-4 py-3 bg-white rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40] text-sm"
+                                />
+                                <button 
+                                  onClick={() => generateOutreach(outreachFeedback)}
+                                  disabled={!outreachFeedback || isGenerating}
+                                  className="px-6 bg-[#1a1a1a] text-white rounded-2xl hover:bg-black transition-all disabled:opacity-50 text-sm font-medium flex items-center gap-2"
+                                >
+                                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Languages className="w-4 h-4" />}
+                                  {t.applyFeedback}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </>
                       ) : (
                         <div className="h-full flex flex-col items-center justify-center text-center p-12">
                           <AlertCircle className="w-12 h-12 text-[#5A5A40]/20 mb-4" />
@@ -1236,6 +1623,104 @@ export default function App() {
                       {lang === 'en' ? 'English' : lang === 'zh-TW' ? '繁體中文' : '简体中文'}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Business Profile */}
+              <div className="bg-white rounded-[32px] p-8 shadow-sm border border-[#e5e5e0]">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-xl font-serif font-medium flex items-center gap-2">
+                    <User className="w-6 h-6 text-[#5A5A40]" />
+                    {t.businessProfile}
+                  </h3>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        await setDoc(doc(db, 'users', user.uid), userProfile, { merge: true });
+                        alert("Profile updated successfully!");
+                      } catch (error) {
+                        console.error("Failed to update profile", error);
+                      }
+                    }}
+                    className="text-sm font-medium text-[#5A5A40] hover:underline flex items-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    {t.save}
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.companyName}</label>
+                    <input 
+                      type="text" 
+                      value={userProfile.companyName || ''}
+                      onChange={(e) => setUserProfile({ ...userProfile, companyName: e.target.value })}
+                      placeholder="e.g. Great Idea Co."
+                      className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.contactEmail}</label>
+                    <input 
+                      type="email" 
+                      value={userProfile.contactEmail || ''}
+                      onChange={(e) => setUserProfile({ ...userProfile, contactEmail: e.target.value })}
+                      placeholder="e.g. hello@greatidea.tw"
+                      className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.contactName}</label>
+                    <input 
+                      type="text" 
+                      value={userProfile.contactName || ''}
+                      onChange={(e) => setUserProfile({ ...userProfile, contactName: e.target.value })}
+                      placeholder="e.g. John Doe"
+                      className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.jobTitle}</label>
+                    <input 
+                      type="text" 
+                      value={userProfile.jobTitle || ''}
+                      onChange={(e) => setUserProfile({ ...userProfile, jobTitle: e.target.value })}
+                      placeholder="e.g. Sales Director"
+                      className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.phone}</label>
+                    <input 
+                      type="text" 
+                      value={userProfile.phone || ''}
+                      onChange={(e) => setUserProfile({ ...userProfile, phone: e.target.value })}
+                      placeholder="e.g. +886 912 345 678"
+                      className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40]"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-6 mt-6">
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.companyFeatures}</label>
+                    <textarea 
+                      value={userProfile.companyFeatures || ''}
+                      onChange={(e) => setUserProfile({ ...userProfile, companyFeatures: e.target.value })}
+                      placeholder={t.featuresPlaceholder}
+                      className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40] resize-none"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-widest font-medium text-[#5A5A40]">{t.featuredProducts}</label>
+                    <textarea 
+                      value={userProfile.featuredProducts || ''}
+                      onChange={(e) => setUserProfile({ ...userProfile, featuredProducts: e.target.value })}
+                      placeholder={t.productsPlaceholder}
+                      className="w-full px-4 py-3 bg-[#f5f5f0] rounded-2xl border-none focus:ring-2 focus:ring-[#5A5A40] resize-none"
+                      rows={3}
+                    />
+                  </div>
                 </div>
               </div>
 
