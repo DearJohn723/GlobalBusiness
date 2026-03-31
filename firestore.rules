@@ -56,6 +56,11 @@ service cloud.firestore {
           (request.auth.token.email == "john@greatidea.tw" && request.auth.token.email_verified == true));
     }
 
+    function isApproved() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isApproved == true || isAdmin());
+    }
+
     function isValidLead(data) {
       return data.keys().hasAll(['name', 'website', 'authorUid', 'createdAt']) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
@@ -79,33 +84,36 @@ service cloud.firestore {
     }
 
     match /leads/{leadId} {
-      allow read: if isDocOwner();
-      allow create: if isAuthenticated() && isValidLead(request.resource.data);
-      allow update: if isDocOwner() && isValidLead(request.resource.data);
-      allow delete: if isDocOwner();
+      allow read: if isDocOwner() && isApproved();
+      allow create: if isApproved() && isValidLead(request.resource.data);
+      allow update: if isDocOwner() && isApproved() && isValidLead(request.resource.data);
+      allow delete: if isDocOwner() && isApproved();
     }
 
     match /templates/{templateId} {
-      allow read: if isDocOwner();
-      allow create: if isAuthenticated() && isValidTemplate(request.resource.data);
-      allow update: if isDocOwner() && isValidTemplate(request.resource.data);
-      allow delete: if isDocOwner();
+      allow read: if isDocOwner() && isApproved();
+      allow create: if isApproved() && isValidTemplate(request.resource.data);
+      allow update: if isDocOwner() && isApproved() && isValidTemplate(request.resource.data);
+      allow delete: if isDocOwner() && isApproved();
     }
     
     match /settings/{settingId} {
-      allow read: if isAuthenticated();
+      allow read: if isApproved();
       allow write: if isAdmin();
     }
     
     match /keywords/{setId} {
-      allow read: if isDocOwner();
-      allow create: if isAuthenticated() && isValidKeywordSet(request.resource.data);
-      allow update: if isDocOwner() && isValidKeywordSet(request.resource.data);
-      allow delete: if isDocOwner();
+      allow read: if isDocOwner() && isApproved();
+      allow create: if isApproved() && isValidKeywordSet(request.resource.data);
+      allow update: if isDocOwner() && isApproved() && isValidKeywordSet(request.resource.data);
+      allow delete: if isDocOwner() && isApproved();
     }
     
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isApproved', 'role'])) || isAdmin();
+      allow delete: if isAdmin();
     }
   }
 }

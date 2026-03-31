@@ -172,6 +172,16 @@ const UI_STRINGS: Record<Language, any> = {
     feedback: 'Feedback / Adjustments',
     feedbackPlaceholder: 'e.g. Make it more formal, or emphasize our fast delivery',
     applyFeedback: 'Apply & Regenerate',
+    pendingApproval: 'Account Pending Approval',
+    pendingApprovalDesc: 'Your account is currently waiting for administrator approval. Please contact the administrator if you believe this is an error.',
+    accessDenied: 'Access Denied',
+    userManagement: 'User Management',
+    approve: 'Approve',
+    reject: 'Reject',
+    approved: 'Approved',
+    pending: 'Pending',
+    email: 'Email',
+    name: 'Name',
   },
   'zh-TW': {
     leads: '業務線索',
@@ -254,6 +264,16 @@ const UI_STRINGS: Record<Language, any> = {
     feedback: '調整意見',
     feedbackPlaceholder: '例如：語氣再正式一點，或強調我們的快速交貨',
     applyFeedback: '套用並重新生成',
+    pendingApproval: '帳號審核中',
+    pendingApprovalDesc: '您的帳號目前正在等待管理員審核。如果您認為這是錯誤，請聯繫管理員。',
+    accessDenied: '拒絕存取',
+    userManagement: '會員管理',
+    approve: '核准',
+    reject: '拒絕',
+    approved: '已核准',
+    pending: '待審核',
+    email: '電子郵件',
+    name: '姓名',
   },
   'zh-CN': {
     leads: '业务线索',
@@ -336,6 +356,16 @@ const UI_STRINGS: Record<Language, any> = {
     feedback: '调整意见',
     feedbackPlaceholder: '例如：语气再正式一点，或强调我们的快速交货',
     applyFeedback: '套用并重新生成',
+    pendingApproval: '账号审核中',
+    pendingApprovalDesc: '您的账号目前正在等待管理员审核。如果您认为这是错误，请联系管理员。',
+    accessDenied: '拒绝存取',
+    userManagement: '会员管理',
+    approve: '核准',
+    reject: '拒绝',
+    approved: '已核准',
+    pending: '待审核',
+    email: '电子邮件',
+    name: '姓名',
   }
 };
 
@@ -408,6 +438,13 @@ async function testConnection() {
 testConnection();
 
 export default function App() {
+  const DEFAULT_PLATFORMS = [
+    { name: '官網', url: '' },
+    { name: 'FB', url: '' },
+    { name: 'IG', url: '' },
+    { name: 'Youtube', url: '' }
+  ];
+
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [activeTab, setActiveTab] = useState<'leads' | 'templates' | 'outreach' | 'settings'>('leads');
@@ -415,7 +452,7 @@ export default function App() {
   const [currentLang, setCurrentLang] = useState<Language>('zh-TW');
   
   // Settings State
-  const [appSettings, setAppSettings] = useState<AppSettings>({ platforms: [] });
+  const [appSettings, setAppSettings] = useState<AppSettings>({ platforms: DEFAULT_PLATFORMS });
   const [userProfile, setUserProfile] = useState<{ 
     companyName?: string; 
     contactEmail?: string;
@@ -424,7 +461,12 @@ export default function App() {
     phone?: string;
     companyFeatures?: string;
     featuredProducts?: string;
+    isApproved?: boolean;
+    role?: 'admin' | 'user';
+    email?: string;
+    displayName?: string;
   }>({});
+  const [allUsers, setAllUsers] = useState<any[]>([]);
   const [isSettingsLoading, setIsSettingsLoading] = useState(true);
   
   // Leads State
@@ -464,13 +506,29 @@ export default function App() {
 
   // --- Auth ---
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u);
-      setIsAuthReady(true);
       if (u) {
-        // Check if admin
-        setIsAdminUser(u.email === "john@greatidea.tw");
+        const isAdmin = u.email === "john@greatidea.tw";
+        setIsAdminUser(isAdmin);
+        
+        // Ensure profile exists
+        const profileRef = doc(db, 'users', u.uid);
+        const profileSnap = await getDocFromServer(profileRef);
+        if (!profileSnap.exists()) {
+          await setDoc(profileRef, {
+            email: u.email,
+            displayName: u.displayName,
+            isApproved: isAdmin, // Admin is auto-approved
+            role: isAdmin ? 'admin' : 'user',
+            createdAt: serverTimestamp()
+          });
+        } else if (isAdmin && !profileSnap.data()?.isApproved) {
+          // Ensure existing admin is approved
+          await updateDoc(profileRef, { isApproved: true, role: 'admin' });
+        }
       }
+      setIsAuthReady(true);
     });
     return () => unsubscribe();
   }, []);
@@ -479,9 +537,14 @@ export default function App() {
   useEffect(() => {
     const unsubscribeGlobal = onSnapshot(doc(db, 'settings', 'global'), (snapshot) => {
       if (snapshot.exists()) {
-        setAppSettings(snapshot.data() as AppSettings);
+        const data = snapshot.data() as AppSettings;
+        if (!data.platforms || data.platforms.length === 0) {
+          setAppSettings({ platforms: DEFAULT_PLATFORMS });
+        } else {
+          setAppSettings(data);
+        }
       } else {
-        setAppSettings({ platforms: [] });
+        setAppSettings({ platforms: DEFAULT_PLATFORMS });
       }
       setIsSettingsLoading(false);
     });
@@ -536,6 +599,20 @@ export default function App() {
       unsubscribeKeywords();
     };
   }, [user]);
+
+  // --- Admin User Management Sync ---
+  useEffect(() => {
+    if (!isAdminUser) {
+      setAllUsers([]);
+      return;
+    }
+
+    const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      setAllUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
+
+    return () => unsubscribeUsers();
+  }, [isAdminUser]);
 
   const t = UI_STRINGS[currentLang];
 
@@ -901,6 +978,14 @@ export default function App() {
     }
   };
 
+  const updateUserApproval = async (userId: string, isApproved: boolean) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), { isApproved });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'users');
+    }
+  };
+
   if (!isAuthReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f5f5f0]">
@@ -929,6 +1014,39 @@ export default function App() {
             <User className="w-5 h-5" />
             Continue with Google
           </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (user && !userProfile.isApproved && !isAdminUser) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f5f5f0] p-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md w-full bg-white rounded-[32px] p-12 shadow-xl text-center"
+        >
+          <div className="w-20 h-20 bg-amber-500 rounded-full flex items-center justify-center mx-auto mb-8">
+            <AlertCircle className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-3xl font-serif font-light mb-4 text-[#1a1a1a]">{t.pendingApproval}</h1>
+          <p className="text-[#5A5A40] mb-8 leading-relaxed">
+            {t.pendingApprovalDesc}
+          </p>
+          <div className="space-y-4">
+            <div className="p-4 bg-[#f5f5f0] rounded-2xl text-left">
+              <p className="text-xs text-[#5A5A40] uppercase tracking-wider mb-1 font-medium">{t.email}</p>
+              <p className="text-[#1a1a1a] font-medium">{user.email}</p>
+            </div>
+            <button 
+              onClick={() => signOut(auth)}
+              className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-white border border-[#5A5A40] text-[#5A5A40] rounded-full hover:bg-[#f5f5f0] transition-all duration-300 font-medium"
+            >
+              <LogOut className="w-5 h-5" />
+              {t.signOut}
+            </button>
+          </div>
         </motion.div>
       </div>
     );
@@ -1821,6 +1939,70 @@ export default function App() {
                   ))}
                 </div>
               </div>
+
+              {/* Admin User Management */}
+              {isAdminUser && (
+                <div className="bg-white rounded-[32px] p-8 shadow-sm border border-[#e5e5e0]">
+                  <h3 className="text-xl font-serif font-medium mb-8 flex items-center gap-2">
+                    <Users className="w-6 h-6 text-[#5A5A40]" />
+                    {t.userManagement}
+                  </h3>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-[#e5e5e0]">
+                          <th className="pb-4 font-medium text-xs uppercase tracking-widest text-[#5A5A40]">{t.name}</th>
+                          <th className="pb-4 font-medium text-xs uppercase tracking-widest text-[#5A5A40]">{t.email}</th>
+                          <th className="pb-4 font-medium text-xs uppercase tracking-widest text-[#5A5A40]">{t.status}</th>
+                          <th className="pb-4 font-medium text-xs uppercase tracking-widest text-[#5A5A40] text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#f5f5f0]">
+                        {allUsers.map((u) => (
+                          <tr key={u.id} className="group">
+                            <td className="py-4">
+                              <p className="font-medium text-[#1a1a1a]">{u.displayName || 'N/A'}</p>
+                            </td>
+                            <td className="py-4">
+                              <p className="text-sm text-[#5A5A40]">{u.email}</p>
+                            </td>
+                            <td className="py-4">
+                              <span className={cn(
+                                "px-3 py-1 rounded-full text-xs font-medium",
+                                u.isApproved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                              )}>
+                                {u.isApproved ? t.approved : t.pending}
+                              </span>
+                            </td>
+                            <td className="py-4 text-right">
+                              {u.email !== "john@greatidea.tw" && (
+                                <div className="flex justify-end gap-2">
+                                  {!u.isApproved ? (
+                                    <button 
+                                      onClick={() => updateUserApproval(u.id, true)}
+                                      className="px-4 py-2 bg-green-600 text-white rounded-full text-xs font-medium hover:bg-green-700 transition-all"
+                                    >
+                                      {t.approve}
+                                    </button>
+                                  ) : (
+                                    <button 
+                                      onClick={() => updateUserApproval(u.id, false)}
+                                      className="px-4 py-2 bg-amber-600 text-white rounded-full text-xs font-medium hover:bg-amber-700 transition-all"
+                                    >
+                                      {t.reject}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               {/* Admin Platform Settings */}
               {isAdminUser && (
