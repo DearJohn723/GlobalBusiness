@@ -367,9 +367,9 @@ interface FirestoreErrorInfo {
 
 // --- Helpers ---
 const getAI = () => {
-  const key = ((import.meta as any).env?.VITE_GEMINI_API_KEY as string) || (process.env.GEMINI_API_KEY as string);
+  const key = process.env.GEMINI_API_KEY;
   if (!key || key === 'undefined') {
-    throw new Error("Gemini API Key is missing. Please set VITE_GEMINI_API_KEY in your environment variables (e.g., Vercel Settings).");
+    throw new Error("Gemini API Key is missing. Please ensure it is set in the environment.");
   }
   return new GoogleGenAI({ apiKey: key });
 };
