@@ -34,7 +34,8 @@ import {
   updateDoc,
   setDoc,
   serverTimestamp,
-  getDocFromServer
+  getDocFromServer,
+  arrayUnion
 } from 'firebase/firestore';
 import { 
   signInWithPopup, 
@@ -61,6 +62,12 @@ interface AppSettings {
   contactEmail?: string;
 }
 
+interface OutreachHistory {
+  date: any;
+  subject: string;
+  message: string;
+}
+
 interface Lead {
   id: string;
   name: string;
@@ -72,6 +79,8 @@ interface Lead {
   status: 'new' | 'contacted' | 'responded' | 'rejected';
   createdAt: any;
   authorUid: string;
+  searchKeyword?: string;
+  outreachHistory?: OutreachHistory[];
   translations?: {
     [lang: string]: {
       name: string;
@@ -102,6 +111,7 @@ const UI_STRINGS: Record<Language, any> = {
     platforms: 'Platforms',
     recentLeads: 'Recent Leads',
     extractContact: 'Extract Contact Info',
+    extractingContact: 'Extracting contact info...',
     startOutreach: 'Start Outreach',
     viewOriginal: 'View Original',
     viewTranslated: 'View Translation',
@@ -182,6 +192,16 @@ const UI_STRINGS: Record<Language, any> = {
     pending: 'Pending',
     email: 'Email',
     name: 'Name',
+    outreachRecorded: 'Outreach recorded successfully!',
+    recordOutreach: 'Record as Sent',
+    outreachHistory: 'Outreach History',
+    filterByKeyword: 'Filter by Keyword',
+    allKeywords: 'All Keywords',
+    noHistory: 'No outreach history yet.',
+    viewHistory: 'View History',
+    hideHistory: 'Hide History',
+    subject: 'Subject',
+    date: 'Date',
   },
   'zh-TW': {
     leads: '業務線索',
@@ -194,6 +214,7 @@ const UI_STRINGS: Record<Language, any> = {
     platforms: '平台',
     recentLeads: '最近線索',
     extractContact: '提取聯繫方式',
+    extractingContact: '正在提取聯絡方式...',
     startOutreach: '開始開發',
     viewOriginal: '查看原文',
     viewTranslated: '查看翻譯',
@@ -274,6 +295,16 @@ const UI_STRINGS: Record<Language, any> = {
     pending: '待審核',
     email: '電子郵件',
     name: '姓名',
+    outreachRecorded: '開發信已記錄！',
+    recordOutreach: '記錄為已寄出',
+    outreachHistory: '開發記錄',
+    filterByKeyword: '按關鍵字篩選',
+    allKeywords: '所有關鍵字',
+    noHistory: '尚無開發記錄。',
+    viewHistory: '查看記錄',
+    hideHistory: '隱藏記錄',
+    subject: '主旨',
+    date: '日期',
   },
   'zh-CN': {
     leads: '业务线索',
@@ -286,6 +317,7 @@ const UI_STRINGS: Record<Language, any> = {
     platforms: '平台',
     recentLeads: '最近线索',
     extractContact: '提取联系方式',
+    extractingContact: '正在提取联系方式...',
     startOutreach: '开始开发',
     viewOriginal: '查看原文',
     viewTranslated: '查看翻译',
@@ -366,6 +398,16 @@ const UI_STRINGS: Record<Language, any> = {
     pending: '待审核',
     email: '电子邮件',
     name: '姓名',
+    outreachRecorded: '开发信已记录！',
+    recordOutreach: '记录为已寄出',
+    outreachHistory: '开发记录',
+    filterByKeyword: '按关键字筛选',
+    allKeywords: '所有关键字',
+    noHistory: '尚无开发记录。',
+    viewHistory: '查看记录',
+    hideHistory: '隐藏记录',
+    subject: '主旨',
+    date: '日期',
   }
 };
 
@@ -450,6 +492,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'leads' | 'templates' | 'outreach' | 'settings'>('leads');
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [currentLang, setCurrentLang] = useState<Language>('zh-TW');
+  const [keywordFilter, setKeywordFilter] = useState<string>('all');
+  const [showHistory, setShowHistory] = useState<Record<string, boolean>>({});
   
   // Settings State
   const [appSettings, setAppSettings] = useState<AppSettings>({ platforms: DEFAULT_PLATFORMS });
@@ -752,7 +796,8 @@ export default function App() {
           platform: selectedPlatforms.join(', ') || 'Web',
           status: 'new',
           createdAt: serverTimestamp(),
-          authorUid: user.uid
+          authorUid: user.uid,
+          searchKeyword: searchQuery
         };
         
         try {
@@ -760,6 +805,8 @@ export default function App() {
           if (currentLang !== 'en') {
             translateLead(leadRef.id, leadData.name, leadData.description, currentLang);
           }
+          // Automatically extract contact info in the background
+          extractContact({ id: leadRef.id, ...leadData } as Lead);
           return leadRef;
         } catch (err) {
           console.error("Failed to save lead", err);
@@ -951,6 +998,28 @@ export default function App() {
       alert("Generation failed: " + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const recordOutreach = async () => {
+    if (!selectedLead || !generatedMessage || !generatedSubject || !user) return;
+    
+    const historyItem: OutreachHistory = {
+      date: new Date(),
+      subject: generatedSubject,
+      message: generatedMessage
+    };
+    
+    try {
+      const leadRef = doc(db, 'leads', selectedLead.id);
+      await updateDoc(leadRef, {
+        outreachHistory: arrayUnion(historyItem),
+        status: 'contacted'
+      });
+      alert(t.outreachRecorded);
+    } catch (error) {
+      console.error("Failed to record outreach", error);
+      handleFirestoreError(error, OperationType.UPDATE, 'leads');
     }
   };
 
@@ -1244,7 +1313,25 @@ export default function App() {
 
               {/* Leads List */}
               <div className="space-y-6">
-                <h3 className="text-xl font-serif font-medium mb-6">{t.recentLeads} ({leads.length})</h3>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                  <h3 className="text-xl font-serif font-medium">{t.recentLeads} ({leads.length})</h3>
+                  
+                  {/* Keyword Filter */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[#5A5A40] font-medium">{t.filterByKeyword}:</span>
+                    <select 
+                      value={keywordFilter}
+                      onChange={(e) => setKeywordFilter(e.target.value)}
+                      className="bg-white border border-[#e5e5e0] rounded-full px-4 py-1.5 text-xs text-[#5A5A40] focus:ring-2 focus:ring-[#5A5A40] outline-none"
+                    >
+                      <option value="all">{t.allKeywords}</option>
+                      {Array.from(new Set(leads.map(l => l.searchKeyword).filter(Boolean))).map(kw => (
+                        <option key={kw} value={kw}>{kw}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 {leads.length === 0 && !isSearching ? (
                   <div className="bg-white rounded-[32px] p-12 border border-[#e5e5e0] text-center">
                     <Search className="w-12 h-12 text-[#5A5A40]/20 mx-auto mb-4" />
@@ -1252,11 +1339,14 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {leads.map((lead) => {
+                    {leads
+                      .filter(l => keywordFilter === 'all' || l.searchKeyword === keywordFilter)
+                      .map((lead) => {
                     const translation = lead.translations?.[currentLang];
                     const isShowingOriginal = showOriginal[lead.id];
                     const displayName = (translation && !isShowingOriginal) ? translation.name : lead.name;
                     const displayDescription = (translation && !isShowingOriginal) ? translation.description : lead.description;
+                    const isShowingHistory = showHistory[lead.id];
 
                     return (
                       <motion.div 
@@ -1315,6 +1405,12 @@ export default function App() {
                           <span className="px-3 py-1 bg-[#f5f5f0] rounded-full text-[10px] uppercase tracking-wider font-semibold text-[#5A5A40]">
                             {lead.status}
                           </span>
+                          {lead.searchKeyword && (
+                            <span className="px-3 py-1 bg-amber-50 rounded-full text-[10px] uppercase tracking-wider font-semibold text-amber-700 flex items-center gap-1">
+                              <Search className="w-2 h-2" />
+                              {lead.searchKeyword}
+                            </span>
+                          )}
                         </div>
 
                         <div className="space-y-4">
@@ -1323,15 +1419,48 @@ export default function App() {
                               {lead.contactInfo}
                             </div>
                           ) : (
-                            <button 
-                              onClick={() => extractContact(lead)}
-                              className="w-full py-2 border border-[#5A5A40] text-[#5A5A40] rounded-full text-sm font-medium hover:bg-[#5A5A40] hover:text-white transition-all flex items-center justify-center gap-2"
-                            >
-                              <Mail className="w-4 h-4" />
-                              {t.extractContact}
-                            </button>
+                            <div className="w-full py-2 border border-[#5A5A40]/30 text-[#5A5A40]/50 rounded-full text-sm font-medium flex items-center justify-center gap-2 animate-pulse">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              {t.extractingContact || 'Extracting contact info...'}
+                            </div>
                           )}
                           
+                          {lead.outreachHistory && lead.outreachHistory.length > 0 && (
+                            <div className="border-t border-[#e5e5e0] pt-4">
+                              <button 
+                                onClick={() => setShowHistory(prev => ({ ...prev, [lead.id]: !prev[lead.id] }))}
+                                className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-[#5A5A40] hover:text-black transition-all"
+                              >
+                                {isShowingHistory ? <X className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+                                {isShowingHistory ? t.hideHistory : `${t.viewHistory} (${lead.outreachHistory.length})`}
+                              </button>
+                              
+                              <AnimatePresence>
+                                {isShowingHistory && (
+                                  <motion.div 
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden mt-4 space-y-4"
+                                  >
+                                    {lead.outreachHistory.map((h, idx) => (
+                                      <div key={idx} className="p-4 bg-[#f5f5f0] rounded-2xl text-[11px]">
+                                        <div className="flex justify-between items-center mb-2 opacity-60">
+                                          <span>{h.date?.toDate ? h.date.toDate().toLocaleDateString() : new Date(h.date).toLocaleDateString()}</span>
+                                          <span className="uppercase tracking-widest font-bold">{t.subject}</span>
+                                        </div>
+                                        <p className="font-medium mb-2">{h.subject}</p>
+                                        <div className="prose prose-xs max-w-none prose-stone opacity-80 line-clamp-3">
+                                          <ReactMarkdown>{h.message}</ReactMarkdown>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          )}
+
                           <button 
                             onClick={() => {
                               setSelectedLead(lead);
@@ -1663,6 +1792,13 @@ export default function App() {
                           >
                             <FileText className="w-4 h-4" />
                             {t.saveAsTemplate}
+                          </button>
+                          <button 
+                            onClick={recordOutreach}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#5A5A40] text-white rounded-full hover:bg-[#4a4a35] transition-all text-sm font-medium"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                            {t.recordOutreach}
                           </button>
                         </div>
                       )}
