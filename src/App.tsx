@@ -20,7 +20,9 @@ import {
   AlertCircle,
   ShieldCheck,
   Save,
-  X
+  X,
+  Star,
+  StarOff
 } from 'lucide-react';
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { 
@@ -81,6 +83,7 @@ interface Lead {
   authorUid: string;
   searchKeyword?: string;
   outreachHistory?: OutreachHistory[];
+  isFavorite?: boolean;
   translations?: {
     [lang: string]: {
       name: string;
@@ -202,6 +205,11 @@ const UI_STRINGS: Record<Language, any> = {
     hideHistory: 'Hide History',
     subject: 'Subject',
     date: 'Date',
+    clearAll: 'Clear All Leads',
+    clearConfirm: 'Are you sure you want to clear all leads? (Favorited leads will be kept)',
+    favorite: 'Mark as Important',
+    unfavorite: 'Remove from Important',
+    important: 'Important',
   },
   'zh-TW': {
     leads: '業務線索',
@@ -305,6 +313,11 @@ const UI_STRINGS: Record<Language, any> = {
     hideHistory: '隱藏記錄',
     subject: '主旨',
     date: '日期',
+    clearAll: '清空所有線索',
+    clearConfirm: '您確定要清空所有線索嗎？（已收藏的線索將會保留）',
+    favorite: '加入收藏',
+    unfavorite: '取消收藏',
+    important: '重要',
   },
   'zh-CN': {
     leads: '业务线索',
@@ -408,6 +421,11 @@ const UI_STRINGS: Record<Language, any> = {
     hideHistory: '隐藏记录',
     subject: '主旨',
     date: '日期',
+    clearAll: '清空所有线索',
+    clearConfirm: '您确定要清空所有线索吗？（已收藏的线索将会保留）',
+    favorite: '加入收藏',
+    unfavorite: '取消收藏',
+    important: '重要',
   }
 };
 
@@ -1031,6 +1049,29 @@ export default function App() {
     }
   };
 
+  const toggleFavorite = async (lead: Lead) => {
+    try {
+      const leadRef = doc(db, 'leads', lead.id);
+      await updateDoc(leadRef, {
+        isFavorite: !lead.isFavorite
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'leads');
+    }
+  };
+
+  const clearAllLeads = async () => {
+    if (!window.confirm(t.clearConfirm)) return;
+    
+    try {
+      const nonFavorites = leads.filter(l => !l.isFavorite);
+      const deletePromises = nonFavorites.map(l => deleteDoc(doc(db, 'leads', l.id)));
+      await Promise.all(deletePromises);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'leads');
+    }
+  };
+
   const saveGeneratedAsTemplate = async () => {
     if (!generatedMessage || !user) return;
     try {
@@ -1317,18 +1358,30 @@ export default function App() {
                   <h3 className="text-xl font-serif font-medium">{t.recentLeads} ({leads.length})</h3>
                   
                   {/* Keyword Filter */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-[#5A5A40] font-medium">{t.filterByKeyword}:</span>
-                    <select 
-                      value={keywordFilter}
-                      onChange={(e) => setKeywordFilter(e.target.value)}
-                      className="bg-white border border-[#e5e5e0] rounded-full px-4 py-1.5 text-xs text-[#5A5A40] focus:ring-2 focus:ring-[#5A5A40] outline-none"
-                    >
-                      <option value="all">{t.allKeywords}</option>
-                      {Array.from(new Set(leads.map(l => l.searchKeyword).filter(Boolean))).map(kw => (
-                        <option key={kw} value={kw}>{kw}</option>
-                      ))}
-                    </select>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[#5A5A40] font-medium">{t.filterByKeyword}:</span>
+                      <select 
+                        value={keywordFilter}
+                        onChange={(e) => setKeywordFilter(e.target.value)}
+                        className="bg-white border border-[#e5e5e0] rounded-full px-4 py-1.5 text-xs text-[#5A5A40] focus:ring-2 focus:ring-[#5A5A40] outline-none"
+                      >
+                        <option value="all">{t.allKeywords}</option>
+                        {Array.from(new Set(leads.map(l => l.searchKeyword).filter(Boolean))).map(kw => (
+                          <option key={kw} value={kw}>{kw}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {leads.some(l => !l.isFavorite) && (
+                      <button 
+                        onClick={clearAllLeads}
+                        className="flex items-center gap-2 px-4 py-1.5 bg-red-50 text-red-600 rounded-full text-xs font-medium hover:bg-red-100 transition-all"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        {t.clearAll}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1390,12 +1443,24 @@ export default function App() {
                               </p>
                             )}
                           </div>
-                          <button 
-                            onClick={() => deleteItem('leads', lead.id)}
-                            className="p-2 text-red-400 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button 
+                              onClick={() => toggleFavorite(lead)}
+                              title={lead.isFavorite ? t.unfavorite : t.favorite}
+                              className={cn(
+                                "p-2 rounded-full transition-all",
+                                lead.isFavorite ? "text-amber-500 bg-amber-50" : "text-gray-300 hover:bg-gray-50 opacity-0 group-hover:opacity-100"
+                              )}
+                            >
+                              {lead.isFavorite ? <Star className="w-4 h-4 fill-current" /> : <StarOff className="w-4 h-4" />}
+                            </button>
+                            <button 
+                              onClick={() => deleteItem('leads', lead.id)}
+                              className="p-2 text-red-400 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                         
                         <div className="flex flex-wrap gap-2 mb-6">
