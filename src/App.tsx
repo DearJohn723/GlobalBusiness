@@ -798,7 +798,6 @@ export default function App() {
   // --- Outreach Generation ---
   const generateOutreach = async (feedback?: string) => {
     if (!selectedLead || !user) return;
-    if (!selectedTemplate && !outreachKeywords && !outreachRequirements && !feedback) return;
     
     setIsGenerating(true);
     try {
@@ -863,6 +862,7 @@ export default function App() {
       if (feedback) setOutreachFeedback('');
     } catch (error) {
       console.error("Generation failed", error);
+      alert("Generation failed: " + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsGenerating(false);
     }
@@ -1424,6 +1424,11 @@ export default function App() {
                           <option value="">{t.chooseLead}</option>
                           {leads.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                         </select>
+                        {leads.length === 0 && (
+                          <p className="text-[10px] text-amber-600 mt-1 italic">
+                            * Please find and save leads in the "Leads" tab first.
+                          </p>
+                        )}
                       </div>
 
                       <div className="space-y-2">
@@ -1479,7 +1484,7 @@ export default function App() {
 
                       <button 
                         onClick={() => generateOutreach()}
-                        disabled={!selectedLead || (!selectedTemplate && !outreachKeywords && !outreachRequirements) || isGenerating}
+                        disabled={!selectedLead || isGenerating}
                         className="w-full bg-[#5A5A40] text-white rounded-full py-4 font-medium hover:bg-[#4a4a35] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
