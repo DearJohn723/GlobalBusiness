@@ -366,6 +366,14 @@ interface FirestoreErrorInfo {
 }
 
 // --- Helpers ---
+const getAI = () => {
+  const key = ((import.meta as any).env?.VITE_GEMINI_API_KEY as string) || (process.env.GEMINI_API_KEY as string);
+  if (!key || key === 'undefined') {
+    throw new Error("Gemini API Key is missing. Please set VITE_GEMINI_API_KEY in your environment variables (e.g., Vercel Settings).");
+  }
+  return new GoogleGenAI({ apiKey: key });
+};
+
 const extractEmail = (text: string) => {
   const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
   const match = text.match(emailRegex);
@@ -398,8 +406,6 @@ async function testConnection() {
   }
 }
 testConnection();
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -562,7 +568,7 @@ export default function App() {
       Description: ${description || 'N/A'}
       Return JSON: { "name": "...", "description": "..." }`;
 
-      const response = await ai.models.generateContent({
+      const response = await getAI().models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
@@ -618,7 +624,7 @@ export default function App() {
       CRITICAL: Return ONLY a valid JSON array. Do not include any markdown formatting blocks (like \`\`\`json), citations, or extra text.
       Format: [{ "name": "...", "website": "...", "description": "..." }]`;
 
-      const response = await ai.models.generateContent({
+      const response = await getAI().models.generateContent({
         model: "gemini-3-flash-preview", 
         contents: prompt,
         config: {
@@ -694,7 +700,7 @@ export default function App() {
       const prompt = `Find the best contact information (email, phone number, or official contact form URL) for the company "${lead.name}" whose website is ${lead.website}. 
       Use Google Search to find real contact details. Provide a concise summary.`;
 
-      const response = await ai.models.generateContent({
+      const response = await getAI().models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
@@ -736,7 +742,7 @@ export default function App() {
       3. The response should be in ${langName}.
       4. Provide ONLY the email body content. No AI chatter.`;
 
-      const response = await ai.models.generateContent({
+      const response = await getAI().models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt
       });
@@ -773,7 +779,7 @@ export default function App() {
       Maintain a professional and persuasive tone.
       Template: ${template.originalContent}`;
 
-      const response = await ai.models.generateContent({
+      const response = await getAI().models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt
       });
@@ -835,7 +841,7 @@ export default function App() {
       5. The message should be in ${outreachLang}.
       6. Make it feel authentic, professional, and specific to their business.`;
 
-      const response = await ai.models.generateContent({
+      const response = await getAI().models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
